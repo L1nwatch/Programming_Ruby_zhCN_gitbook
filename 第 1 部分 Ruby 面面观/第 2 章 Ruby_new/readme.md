@@ -82,3 +82,99 @@ puts "Danger, While Robinson" if radiation > 3000
 
 ### 2.5 正则表达式
 
+可以使用如下的正则表达式来编写模式，它会匹配包含 Perl 或 Python 的字符串：
+
+```ruby
+/Perl|Python/
+```
+
+也可以使用括号：
+
+```ruby
+/P(erl|ython)/
+```
+
+sub 替换第一个匹配项，gsub 替换所有匹配项
+
+### 2.6 Block 和迭代器
+
+Block，一种可以和方法调用相关联的代码块。
+
+可以用 block 实现回调，它只是在花括号或者 `do...end` 之间的一组代码
+
+```ruby
+{ puts "Hello" }	# this is a block
+do	# and so is this
+  club.enroll(person)
+  person.socialize
+end
+```
+
+Ruby 标准的一个约定俗成，单行 block 用花括号，多行用 `do/end`
+
+一旦创建了 block，就可以与方法的调用相关联。把 block 的开始放在含有方法调用的源码行的结尾处，就可以实现关联。
+
+```ruby
+greet { puts "Hi" }
+```
+
+如果方法有参数，它们出现在 block 之前
+
+使用 Ruby 的 yield 语句，方法可以一次或多次地调用（invoke）相关联的 block。
+
+```ruby
+def call_block
+  puts "Start of method"
+  yield
+  yield
+  puts "End of method"
+end
+
+call_back { puts "In the block" }
+```
+
+输出结果：
+
+```ruby
+Start of method
+In the block
+In the block
+End of method
+```
+
+可以提供参数给对 `yield` 的调用：参数会传递到 block 中。在 block 中，竖线（|）之间给出参数名来接受这些来自 yield 的参数：
+
+```ruby
+def call_block
+  yield("hello", 99)
+end
+call_block {|str, num| ... }
+```
+
+在 Ruby 库中大量使用了 block 来实现迭代器：
+
+```ruby
+animals = %w( ant bee cat dog elk )
+animals.each {|animal| puts animal }
+```
+
+### 2.7 读/写文件
+
+puts 输出它的参数，并在每个参数后面添加回车换行符。
+
+print 也输出它的参数，但没有添加回车换行符。
+
+printf，它在一个格式化字符串的控制下打印出它的参数。
+
+gets 从程序的标准输入流中读取下一行。
+
+Ruby 风格会使用迭代器和预定义对象 ARGF，ARGF 表示程序的输入文件：
+
+```ruby
+print ARGF.grep(/Ruby/)
+```
+
+可以用 `-w` 选项运行程序来显示警告信息
+
+### 2.8 更高更远
+
