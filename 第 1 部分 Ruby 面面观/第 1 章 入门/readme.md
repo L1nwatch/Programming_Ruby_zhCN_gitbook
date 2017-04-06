@@ -32,3 +32,61 @@ Ruby 的二进制发行版很容易安装，这是为特定操作系统环境而
 
 ### 1.2 运行 Ruby
 
+Ruby 开发者使用 CVS（Concurrent Version System）作为版本控制系统，可以执行下面的命令，以匿名用户将文件从其归档（archive）中检出：
+
+```shell
+cvs -z4 -d :pserver:anaoymous@cvs.ruby-lang.org:/src login
+cvs -z4 -d :pserver:anaoymous@cvs.ruby-lang.org:/src checkout ruby
+```
+
+这个命令将会导出源代码开发树的主分支，比如想导出 Ruby 1.8 分支，可以在 `checkout` 后面加入 `-r ruby_1_8`
+
+#### 1.2.1 交互式 Ruby
+
+可以直接在 `shell` 下执行 `ruby` 来交互式运行，但推荐使用 `irb` 来交互执行 Ruby。irb 是一个 Ruby Shell，包括命令行历史（command-line history）功能、行编辑（line-editing）功能和作业控制（job control）。
+
+可以使用 irb 来运行已经存在于文件中的代码示例，比如：
+
+```shell
+irb > load "code/rdoc/fib_example.rb"
+irb > Fibonacci.upto(20)
+```
+
+#### 1.2.2 Ruby 程序
+
+可以用 Unix 的 `shebang` 符号作为程序文件的第一行：
+
+```ruby
+#! /usr/local/bin/ruby -w
+```
+
+如果系统支持的话，还可以使用下面这句，系统将会搜索 Ruby 路径并执行之，避免硬性指定 Ruby 路径
+
+```ruby
+#! /usr/bin/env ruby
+```
+
+如果将此源代码文件设置为可执行，Unix 就可将其作为程序来运行
+
+```shell
+./myprog.rb
+```
+
+### 1.3 Ruby 文档：RDoc 和 ri
+
+许多库由内部一个称为 RDoc 的系统来进行文档化
+
+如果使用 RDoc 来文档化一个源文件，那么其中的文档可以被提取出来，并转换成 HTML 或者 ri 格式
+
+ri 是一种本地命令行工具，用来阅读 RDoc 格式的 Ruby 文档。
+
+输入 ri 类名，就可以得到该类的文档。比如：`ri GC`
+
+以方法名字作为参数，可以获得该方法的信息：`ri enable`
+如果传给 ri 的方法名称存在于多个类或模块当中，ri 会列出所有的可能。在方法名字前加上类名字和点号重新调用：`ri GC.start`
+
+`--format` 选项，可以告诉 ri 如何显示修饰性的文本符号，比如 `--format ansi`
+
+```shell
+export RI="--format ansi --width 70"
+```

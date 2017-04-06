@@ -1,6 +1,6 @@
 # 《ProgrammingRuby中文版第2版》
 
-* 本仓库是 《ProgrammingRuby 中文版第 2 版》的读书笔记，已经整理成 [GitBook 形式]()了，方便阅读
+* 本仓库是 《ProgrammingRuby 中文版第 2 版》的读书笔记，已经整理成 [GitBook 形式](https://l1nwatch.gitbooks.io/programming_ruby_zhcn/content/)了，方便阅读
 
 ## 书目清单
 * 第 1 部分 Ruby 面面观
