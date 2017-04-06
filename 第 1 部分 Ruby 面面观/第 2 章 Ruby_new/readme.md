@@ -12,3 +12,73 @@ song = Song.new("Ruby Tuesday")
 
 ### 2.2 Ruby 的一些基本知识
 
+下面两行是等同的，主要是指括号问题：
+
+```ruby
+puts say_goodnight("John-Boy")
+puts(say_goodnight("John-Boy"))
+```
+
+但是考虑优先级的问题，最好是都使用括号
+
+Ruby 对单引号串处理得很少。Ruby 对双引号字符串有更多的处理，首先它寻找以反斜线开始的序列，并用二进制值替换它们。
+
+Ruby 对双引号字符串所做的第二件事情是字符串内的表达式内插（expression interpolation），`#{表达式}` 序列会被”表达式“的值替换。
+
+为了方便起见，如果表达式只是一个全局实例或类变量，则不需要提供花括号：
+
+```ruby
+$greeting = "Hello"		# $greeting 是全局变量
+@name	  = "Prudence"	# @name 是实例变量
+puts "#$greeting,#$name"
+```
+
+Ruby 方法所返回的值，是最后一个被求值的表达式的值，所以可以把这个临时变量和 return 语句都去掉：
+
+```ruby
+def say_goodnight(name)
+  "Good night, #{name}"
+end
+puts say_goodnight("Ma")
+```
+
+Ruby 使用一种命名惯例来区分名称的用途：名称的第一个字符显示这个名称如何被使用。局部变量、方法参数和方法名称都必须以小写字母或下画线开始。全局变量都有 `$` 为前缀，而实例变量以 `@` 符号开始，类变量以 `@@` 开始。类名称、模块名称和常量都必须以一个大写字母开始。
+
+名称可以是字母、数字和下画线的任意组合（但跟在@符号之后的符号不能是数字）。按惯例，包含多个单词的实例变量名称在词与词之间使用下画线连接，包含多个单词的类变量名称使用混合大小写（每个单词首字母大写）。方法名称可以 `?`、`!` 和 `=` 字符结束
+
+| 局部变量             | 全局变量        | 实例变量       | 类变量        | 常量和类名称      |
+| ---------------- | ----------- | ---------- | ---------- | ----------- |
+| name             | `$debug`    | `@name`    | `@@total`  | PI          |
+| `fish_and_chips` | `$CUSTOMER` | `@point_1` | `@@symtab` | FeetPerMile |
+| `x_axis`         | `$_`        | `@X`       | `@@N`      | String      |
+| `thx1138`        | `$plan9`    | `@_`       | `@@x_pos`  | MyClass     |
+| `_26`            | `$Global`   | `@plan9`   | `@@SINGLE` | JazzSong    |
+
+### 2.3 数组和散列表
+
+访问数组元素是高效的，但是散列表提供了灵活性。
+
+在 Ruby 中，nil 是一个对象，与别的对象一样，只不过它是用来表示没有任何东西的对象。
+
+在 Ruby 中，`%w` 可以让我们快速创建一组单词的数组
+
+默认情况下，如果用一个散列表没有包含的键进行索引，散列表就返回 `nil`。当创建一个新的空散列表时，可以指定一个默认值：`histogram = Hash.new(0)`
+
+### 2.4 控制结构
+
+大多数 Ruby 语句会返回值，这意味着可以把它们当条件使用。例如，`gets` 方法从标准输入流返回下一行，或者当到达文件结束时返回 `nil`。
+
+```ruby
+while line = gets
+  puts line.downcase
+end
+```
+
+还有语句修饰符（statement modifiers）：
+
+```ruby
+puts "Danger, While Robinson" if radiation > 3000
+```
+
+### 2.5 正则表达式
+
