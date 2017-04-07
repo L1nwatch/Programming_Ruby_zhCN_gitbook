@@ -94,5 +94,125 @@ end
 
 #### 3.2.3 属性、实例变量及方法
 
+### 3.3 类变量和类方法
 
+#### 3.3.1 类变量
+
+类变量由两个 `@@` 开头
+
+类变量对类及其实例都是私有的，如果想让它们能够被外部世界访问，需要编写访问方法。
+
+#### 3.3.2 类方法
+
+类方法和实例方法是通过它们的定义区别开来的；通过在方法名之前放置类名以及一个句点，来定义类方法：
+
+```ruby
+class Example
+  def instance_method		# instance method
+  end
+  def Example.class_method	# class method
+  end
+end
+```
+
+#### 3.3.3 单件与其他构造函数
+
+实现 Singleton 模式，在《Design Patterns（设计模式）》中记载。
+
+以下代码使得只有一种方式来创建日志对象，那就是调用 `MyLogger.create`，并且还保证只有一个日志对象被创建（但不保证线程安全）：
+
+```ruby
+class MyLogger
+  private_class_method :new
+  @@logger = nil
+  def MyLogger.create
+    @logger = new unless @@logger
+    @@logger
+  end
+end
+```
+
+>   ### 类方法定义
+>
+>   实际上，你可以用很多方式来定义类方法
+>
+>   ```ruby
+>   class Demo
+>     def Demo.meth1
+>       # ...
+>     end
+>     def self.meth2
+>       # ...
+>     end
+>     class << self
+>       def meth3
+>         # ...
+>       end
+>     end
+>   end
+>   ```
+
+使用类方法作为伪构造函数（pseudo-constructors），可以让使用类的用户更轻松些。
+
+### 3.4 访问控制
+
+在 Ruby 中改变一个对象的状态，唯一的简单方式就是调用它的方法。控制对方法的访问，就得以控制对对象的访问。Ruby 为你提供了三种级别的保护：
+
+*   Public（公有）方法可以被任何人调用，没有限制访问控制。方法默认是 public 的（除了 initialize)
+*   Protected（保护）方法只能被定义了该方法的类或其子类的对象所调用。整个家族均可访问
+*   Private（私有）方法不能被明确的接收者调用，其接收者只能是 self
+
+Ruby 和其他面向对象语言的差异，还体现在另一个重要的方面。访问控制是在程序运行时动态判定的，而非静态判定。只有当代码视图执行受限的方法，你才会得到一个访问违规。
+
+#### 3.4.1 指定访问控制
+
+如果使用时没有参数，这 3 个函数设置后续定义方法的默认访问控制。
+
+```ruby
+class MyClass
+  def method1 # default is "public"
+  end
+  protected
+  def method2	# protected
+  end
+  private
+  def method3	# private
+  end
+  public
+  def method4	# public
+  end
+end
+```
+
+ 另外，还可以通过将方法名作为参数列表传入访问控制函数来设置它们的访问级别：
+
+```ruby
+class MyClass
+  def method1
+  end
+  public	:method1, :method4
+  protected	:method2
+  private	:method3
+end
+```
+
+### 3.5 变量
+
+变量只是对象的引用。对象漂浮在某处一个很大的池中（大多数时候是堆，即 heap 中），并由变量指向它们。
+
+赋值别名（alias）对象，潜在地给了你引用同一对象的多个变量。可以通过使用 `String` 的 `dup` 方法来避免创建别名，它会创建一个新的、具有相同的内容的 String 对象。
+
+```ruby
+person1 = "Tim"
+person2 = person1.dup
+```
+
+可以通过冻结一个对象来阻止其他人对其进行改动。试图更改一个被冻结的对象，Ruby 将引发（raise）一个 TypeError 异常。
+
+```ruby
+person1 = "Tim"
+person2 = person1
+person1.freeze
+person2[0] = "J"	# raise TypeError
+```
 
