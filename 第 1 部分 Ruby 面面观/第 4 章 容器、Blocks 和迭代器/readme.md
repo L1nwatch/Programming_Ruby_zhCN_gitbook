@@ -184,3 +184,42 @@ end
 
 #### 4.2.3 Blocks 可以作为闭包
 
+以下使用 block 解决点唱机的相关按钮，避免了子类冗余等问题：
+
+```ruby
+songlist = SongList.new
+
+class JukeboxButton < Button
+  def initialize(label, &action)
+    super(label)
+    @action = action
+  end
+  
+  def button_pressed
+    @action.call(self)
+  end
+end
+
+start_button = JukeboxButton.new("Start")	{ songlist.start }
+pause_button = JukeboxButton.new("Pause")	{ songlist.pause }
+```
+
+关键在于 `JukeboxButton#initialize` 的第二个参数。如果定义方法时在最后一个参数前加一个 `&`，那么当调用该方法时，Ruby 会寻找一个 block。block 将会被转化成 Proc 类的一个对象，并赋值给参数。这样可以像任意其他变量一样处理该参数。
+
+当我们创建 Proc 对象时，得到的不仅仅是一堆代码。和 block（以及 Proc 对象）关联在一起的还有定义 block 时的上下文，即 self 的值、作用域内的方法、变量和常量。即使 block 被定义时的环境早已消失了，block 仍然可以使用其原始作用域中的信息。在其他语言中，这种特性称之为闭包。比如：
+
+```ruby
+def n_times(thing)
+  return lambda {|n| thing * n}
+end
+
+p1 = n_times(23)
+p1.call(3)	# ->	69
+p1.call(4)	# ->	92
+p2 = n_times("Hello ")
+p2.call(3)	# ->	"Hello Hello Hello "
+```
+
+### 4.3 处处皆是容器
+
+容器、block 和迭代器是 Ruby 的核心概念。
