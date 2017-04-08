@@ -49,3 +49,76 @@ end
 
 ### 5.2 字符串
 
+双引号字符串支持更多的转义序列。如果代码只是全局变量、类变量或实例变量的话，花括号可以忽略。
+
+要进行插入替换的代码可以是一条或多条语句，而不仅仅是一个表达式：
+
+```ruby
+puts "now is # {def the(a)
+					'the ' + a
+				end
+				the('time')
+				}for all good coders..."
+```
+
+另外还有 3 种方式去构建字符串字面量：`%q`、`%Q`、`here documents`
+
+`%q`、`%Q` 分别开始界定单引号和双引号的字符串（可以把 `%q` 看成薄的引号`'`，把 `%Q` 看成厚的引号`"`）。
+
+```ruby
+%q/general single-quoted string/	# ->	general single-quoted string
+%Q!general doubke-quoted string!	# ->	general doubke-quoted string
+%Q{Seconds/day: #{24 * 60 * 60}}	# ->	Seconds/day: 86400
+```
+
+跟在 q 或 Q 后面的字符是分界符。如果它是开始（opening）的方括号 `"["`，花括号 `"{"`，括号 `"{"`，或小于号 `"<"`，字符串被一直读取直到发现相匹配的结束符号。否则，字符串会被一直读取，直到出现下一个相同的分界符。分界符可以是任何一个非字母数字的单字节字符。
+
+最后，可以使用 `here document` 构建字符串：
+
+```ruby
+string = <<END_OF_STRING
+The body of the string
+text that followed the '<<'
+END_OF_STRING
+```
+
+`here document` 由源文件中那些行但没有包含在 `<<` 字符后面指明终结字符串的行组成。一般情况下，终结符（terminator）必须在第一列出现。当然，如果把一个减号放在 `<<` 字符后面，就可以缩进编排终结符。
+
+```ruby
+print <<-STRING1, <<-STRING2
+Concat
+String1
+  encate
+  STRING2
+```
+
+注意，前导空格不会删去
+
+#### 5.2.1 操作字符串
+
+`chmop` 可用于去除换行符
+
+`split` 可实现分割：
+
+```ruby
+line.chmop.split(/\s*\|\s*/)
+```
+
+有许多方式可以删除多余空格，但是最简单的方式可能是 `String#squeeze`，它修建（trim）重复字符：
+
+```ruby
+name.squuze!(" ")
+```
+
+`String#scan` 类似于 `split`，因为它根据模式（pattern）把字符串分成几块。但是与 split 不一样，使用 scan 可以指定希望这些块去匹配的模式。
+
+```ruby
+mins, secs = length.split(/:/)
+# 等价
+mins, secs = length.scan(/\d+/)
+```
+
+### 5.3 区间
+
+#### 5.3.1 区间作为序列
+
