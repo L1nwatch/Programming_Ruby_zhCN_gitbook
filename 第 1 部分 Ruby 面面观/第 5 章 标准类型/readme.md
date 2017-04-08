@@ -224,3 +224,73 @@ show_regexp("very intersting", /t/)	# -> very in<<t>>eresting
 
 #### 5.4.1 模式
 
+##### 锚点
+
+^ 和 & 模式分别匹配行首和行尾。它们常常被用来锚定（author）模式匹配。`\A` 序列匹配字符串的开始，而 `\z` 和 `\Z` 匹配字符串的结尾（实际上，除非字符串以 `\n` 结束，`\Z` 才会匹配字符串的结尾，它会在 `\n` 之前匹配）。
+
+```ruby
+show_regexp("this is\nthe time", /^the/)		# -> this is\n<<the>> time
+show_regexp("this is\nthe time", /is$/)			# -> this <<is>>\nthe time
+show_regexp("this is\nthe time", /\Athe/)		# -> <<this>> is\nthe time
+show_regexp("this is\nthe time", /\Athe/)		# -> no match
+```
+
+同样的，`\b` 和 `\B` 模式分别匹配词的边界和非词（nonword）的边界。组词字符可以是字母、数字和下画线。
+
+```ruby
+show_regexp("this is\nthe time", /\bis/)		# -> this <<is>>\nthe time
+show_regexp("this is\nthe time", /\Bis/)		# -> th<<is>> is\nthe time
+```
+
+##### 字符类
+
+特殊正则表达式字符的意义——`.|()[{+^$*?` 在方括号里面是关闭的。不过，正常的字符替换仍然发生，因此 `\b` 表示回退空格，而 `\n` 表示回车换行符。
+
+| 序列   | 是             | 含义           |
+| ---- | ------------- | ------------ |
+| \d   | [0-9]         | 数字字符         |
+| \D   | [^0-9]        | 除数字之外的任何字符   |
+| \s   | [ \t\r\n\f]   | 空格字符         |
+| \S   | [^ \t\r\n\f]  | 除空格之外的任何字符   |
+| \w   | [A-Za-z9-9_]  | 组词字符         |
+| \W   | [^A-Za-z0-9_] | 除组词字符之外的任何字符 |
+
+| POSIX 字符类  | 含义                      |
+| ---------- | ----------------------- |
+| [:alnum:]  | 字母和数字                   |
+| [:alpha:]  | 大写或小写字母                 |
+| [:blank:]  | 空格和制表符                  |
+| [:cntrl:]  | 控制字符（至少 0x00-0x1f，0x7f） |
+| [:digit:]  | 数字                      |
+| [:Graph:]  | 除了空格的可打印字符              |
+| [:lower:]  | 小写字符                    |
+| [:print:]  | 任何可打印字符（包括空格）           |
+| [:punct:]  | 除了空格和字母数字的可打印字符         |
+| [:space:]  | 空格（等同于\s）               |
+| [:upper:]  | 大写字母                    |
+| [:xdigit:] | 16 进制数字（0-9，a-f，A-F）    |
+
+```ruby
+show_regexp("Price $12.", /[aeiou]/)			# ->	Pr<<i>>ce $12.
+show_regexp("Price $12.", /[\s]/)				# ->	Price<< >>$12.
+show_regexp("Price $12.", /[[:digit:]]/)		# ->	Price $<<1>>2.
+show_regexp("Price $12.", /[[:space:]]/)		# ->	Price<< >>$12.
+show_regexp("Price $12.", /[[:punct:]aeiou]/)	# ->	Pr<<i>>ce $12.
+```
+
+在方括号内，`c1-c2` 序列表达 `c1` 和 `c2` 之间的所有字符，并包含 `c2`
+
+如果想在字符类包含字面量字符`]`和`-`，它们必须出现在开始处。把 `^` 直接放在开始的方括号后面会对字符类求反。
+
+```ruby
+a = 'see [Design Patterns-page 123]'
+show_regexp(a, /[]]/)		# ->	see [Design Patterns-page 123<<]>>
+show_regexp(a, /[-]/)		# ->	see [Design Patterns<<->>page 123]
+show_regexp(a, /[^a-z]/)	# ->	see<< >>[Design Patterns-page 123<<]>>
+show_regexp(a, /[^a-z\s]/)	# ->	see <<[>>Design Patterns-page 123<<]>>
+```
+
+出现在方括号外面的点号（.）表示除回车换行符之外的任何字符（尽管在多行模式下它会匹配回车换行符）。
+
+##### 重复
+
