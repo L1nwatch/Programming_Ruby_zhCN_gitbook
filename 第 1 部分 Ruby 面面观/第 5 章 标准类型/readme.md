@@ -120,5 +120,107 @@ mins, secs = length.scan(/\d+/)
 
 ### 5.3 区间
 
+Ruby 使用区间去实现 3 种不同的特性：序列（sequences）、条件（conditionals）和间隔（intervals）
+
 #### 5.3.1 区间作为序列
+
+在 Ruby 中，使用 `..` 和 `...` 区间操作符来创建序列。两个点的形式是创建闭合的区间（包括右端的值），而 3 个点的形式是创建半闭半开的区间（不包括右端的值）。
+
+在 Ruby 中，区间没有在内部用列表（list）表示：`1..100000` 序列被存储为 Range 对象，它包含对两个 Fixnum 对象的引用。如果需要，可以使用 `to_a` 方法把区间转换成列表。
+
+Ruby 可以根据你所定义的对象来创建区间。唯一的限制是这些对象必须返回在序列中的下一个对象作为对 succ 的响应，而且这些对象必须是可以使用 `<=>` 来比较的。
+
+以下的 VU 类实现了 succ  和 `<=>` 方法，因此它可以作为区间：
+
+```ruby
+class VU
+  include Comparable
+  attr :volume
+  def initialize(volume)	# 0..9
+    @volume = volume
+  end
+  def inspect
+    '#' * @volume
+  end
+  def <=>(other)
+    self.volume <=> other.volume
+  end
+  def succ
+    raise(IndexError, "Volume too big") if @volume >= 9
+    VU.new(@volume.succ)
+  end
+end
+
+medium_volume = VU.new(4)..VU.new(7)
+medium_volume.to_a					# ->	[####, #####, ######, #######]
+medium_volume.include?(VU.new(3))	# ->	false
+```
+
+#### 5.3.2 区间作为条件
+
+在这里它们表现得就像某种双向开关——当区间第一部分的条件为 true 时，它们就打开，当区间第二部分的条件为 true 时，它们就关闭。例如，下面的代码段，打印从标准输入得到的行的集合，每组的第一行包含 start 这个词，最后一行包含 end 这个词。
+
+```ruby
+while line = gets
+  puts line if line =~ /start/ .. line =~ /end/
+end
+```
+
+早期的 Ruby 版本中，裸区间（bare range）可以在 `if`、`while` 和类似的语句中作为条件来使用。比如，可能会把先前的代码写成：
+
+```ruby
+while gets
+  print if /start/../end/
+end
+```
+
+这种写法不再支持。但不幸的是，它不会引发任何错误；且每次测试都会成功。
+
+#### 5.3.3 区间作为间隔
+
+间隔测试：看看一些值是否会落入区间表达的间隔内。使用 `===` 即 `case equality` 操作符可以做到这一点：
+
+```ruby
+(1..10)	===	5		# ->	true
+(1..10)	===	15		# ->	false
+(1..10)	===	3.14	# ->	true
+('a'..'j')	===	'c'	# ->	true
+('a'..'j')	=== 'z'	# ->	false
+```
+
+### 5.4 正则表达式
+
+正则表达式是 Regexp 类型的对象。可以通过显示地调用构造函数或使用字面量形式 `/pattern/` 和 `%r{pattern}` 来创建它们。
+
+```ruby
+a = Regexp.new('^\s*[a-z]')	# ->	/^\s*[a-z]/
+b = /^\s*[a-z]/				# ->	/^\s*[a-z]/
+c = %r{^\s*[a-z]}			# ->	/^\s*[a-z]/
+```
+
+一旦有了正则表达式对象，可以使用 `Regexp#match(string)` 或匹配操作符 `=~`（肯定匹配）和 `!~`（否定匹配）对字符串进行匹配。匹配操作符对 String 和 Regexp 对象均有定义。匹配操作符至少有一个操作数必须为正则表达式。（早期版本的 Ruby 当中，这两个操作数可能都是字符串，且第二个操作数会暗中被转换成正则表达式。）
+
+```ruby
+name = "Fats Waller"
+name =~ /a/	# -> 1
+name =~ /z/	# -> nil
+/a/ =~ name	# -> 1
+```
+
+匹配操作符返回匹配发生的字符位置。它们也有副作用，会设置一些 Ruby 变量。`$&` 得到与模式匹配的那部分字符串，$\` 得到匹配之前的那部分字符串，而 `$'` 得到匹配之后的那部分字符串：
+
+```ruby
+def show_regexp(a, re)
+  if a =~ re
+    "#{$`}<<#{$&}>>#{$'}"
+  else
+    "no match"
+  end
+end
+show_regexp("very intersting", /t/)	# -> very in<<t>>eresting
+```
+
+这个匹配也设置了线程局部变量（`thread-local variables`），`$~` 与 `$1` 直到 `$9`。`$~` 变量是 MatchData 对象，它持有你想知道的有关匹配的所有信息。`$1` 等持有匹配各个部分的值。
+
+#### 5.4.1 模式
 
