@@ -294,3 +294,83 @@ show_regexp(a, /[^a-z\s]/)	# ->	see <<[>>Design Patterns-page 123<<]>>
 
 ##### 重复
 
+`r{m,}`：匹配至少 “m” 次 r 的出现
+
+重复构造有高的优先级——它们只绑定到模式内先前的正则表达式。必须小心使用 \* 构造。
+
+贪心（greedy）模式，默认情况下它们会匹配尽可能多的字符串。可以通过添加问号后缀让它们匹配最少的字符串来改变这个默认行为。
+
+##### 替换
+
+未转义的竖线（|）要么是匹配在它之前的正则表达式，要么是匹配在它之后的正则表达式
+
+然而竖线的优先级非常低，有时需要使用编组（grouping）来重载默认的优先级，比如以下例子匹配 red ball 或 angry sky，但不会匹配 red ball sky 或 red angry sky：
+
+```ruby
+show_regexp(a, /red ball|angry sky/)	# ->	<<red ball>> blue sky
+```
+
+##### 编组
+
+可以使用括号在正则表达式中编组（group）词目。组内的所有东西被当作单个正则表达式对待。
+
+括号也收集模式匹配的结果。Ruby 计算开始括号的数目，保存每个开始括号和相应的关闭括号之间部分匹配的结果。可以在模式的剩余部分和 Ruby 程序中使用这种部分匹配。在模式内部，`\1` 序列指的是第一个组的匹配，`\2` 序列指的是第二个组的匹配。在模式外面，特殊变量 `$1` 和 `$2` 等起到相同作用。
+
+在匹配的剩余部分使用当前部分匹配的能力，能够让你在字符串中寻找各种形式的重复：
+
+```ruby
+show_regexp('He said "Hello"', /(\w)\1/)	# ->	He said "He<<ll>>o"
+show_regexp('Mississippi', /(\w+)\1/)		# ->	M<<ississ>>ippi
+```
+
+也可以使用向后引用去匹配分界符：
+
+```ruby
+show_regexp('He said "Hello"', /(["']).*?\1/)	# ->	He said <<"Hello">>
+show_regexp("He said 'Hello'", /(["']).*?\1/)	# ->	He said <<'Hello'>>
+```
+
+#### 5.4.2 基于模式的替换
+
+sub 和 gsub 的第二个参数可以是 String 或 block。如果使用 block，匹配的子字符串会被传递给 block，同时 block 的结果值会被替换到原先的字符串中：
+
+```ruby
+a = "the quick brown fox"
+a.sub(/^./) {|match| match.upcase }			# ->	"The quick brown fox"
+a.gsub(/[aeiou]/) {|vowel| vowel.upcase}	# ->	"thE qUIck brOwn fOx"
+```
+
+匹配词的首字符的模式是 `\b\w`——它寻找后面跟着词字符（word character）的词边界：
+
+```ruby
+def mixed_case(name)
+  name.gsub(/\b\w/) {|first| first.upcase}
+end
+
+mixed_case("fats waller")	# ->	"Fats Waller"
+```
+
+##### 替换中的反斜线序列
+
+序列 `\1` 和 `\2` 等在模式中可用，它们代表至今为止第 n 个已匹配的组。相同的序列也可以作为 sub 和 gsub 的第二个参数。
+
+其他的反斜线序列在替换字符串中起的作用：`\&`（最后的匹配）、`\+`（最后匹配的组）、\\\`（匹配之前的字符串），`\'` 匹配之后的字符串和 `\\`（字面量反斜线）
+
+可以利用 `\&` 表示反斜线替换：
+
+```ruby
+str = 'a\b\c'
+str.gsub(/\\/, '\\\\\\\\')	# ->	"a\\b\\c"
+str = 'a\b\c'
+str.gsub(/\\/, '\&\&')		# ->	"a\\b\\c"
+```
+
+如果使用 gsub 的 block 形式，用来替换的字符串会被且仅被分析一次（在语法分析阶段）：
+
+```ruby
+str = 'a\b\c'
+str.gsub(/\\/) { '\\\\' }	# ->	"a\\b\\c"
+```
+
+#### 5.4.3 面向对象的正则表达式
+
