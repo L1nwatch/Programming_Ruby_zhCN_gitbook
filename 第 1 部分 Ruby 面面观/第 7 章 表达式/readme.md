@@ -281,3 +281,159 @@ cost = song.duration > 180 ? 0.35 : 0.25
 
 #### If 和 Unless 修饰符
 
+语句修饰符允许你将条件语句附加到常规语句的尾部。
+
+因为 `if` 本身也是一个表达式，下面的用法会让人困惑：
+
+```ruby
+if artist == "John Coltrane"
+  artist = "'Trane"
+end unless use_nicknames == "no"
+```
+
+### 7.5 Case 表达式
+
+Ruby 的 case 有两种形式。
+
+第一种形式接近于一组连续的 `if` 语句：
+
+```ruby
+leap = case
+when year % 400 == 0: true	# 冒号可以换成 then
+when year % 100 == 0: false
+else year % 4 == 0
+end
+```
+
+第二种形式，在 `case` 语句的顶部指定一个目标，而每个 `when` 从句列出一个或者多个比较条件：
+
+```ruby
+case input_line
+when "debug"
+  dump_debug_info
+  dump_symbols
+when /p\s+(\w+)/
+  dump_variable($1)
+when "quit", "exit"
+  exit
+else
+  print "Illegal command: #{input_line}"
+end
+```
+
+case 返回执行的最后一个表达式的值。
+
+`case` 通过比较目标和 when 关键字后面的表达式来运作。这个测试通过使用 `comparison === target` 来完成。只要一个类为 `===`（內建的类都有）提供了有意义的语义，那么该类的对象就可以在 case 表达式中使用。
+
+正则表达式将 `===` 定义为一个简单的模式匹配
+
+Ruby 的所有类都是类 Class 的实例，它定义了 `===` 以测试参数是否为该类或者其父类的一个实例。所以你可以测试对象到底属于哪个类：
+
+```ruby
+case shape
+when Square, Rectangle
+  # ...
+when Circle
+  # ...
+when Triangle
+  # ...
+else
+  # ...
+end
+```
+
+### 7.6 循环
+
+只要条件为真，`while` 循环就会执行循环体。`until` 循环与此相反，它执行循环体直到循环条件变为真。
+
+你也可以用这两种循环做语句的修饰符：
+
+```ruby
+a = 1
+a *= 2 while a < 100
+a -= 10 until a < 100
+```
+
+range 可以作为某种后空翻：当某个事件发生时变为真，并在第二个事件发生之前一直保持为真。这常被用在循环中。比如读一个含有前十个序数的文本文件，但只输出匹配的行：
+
+```ruby
+file = File.open("ordinal")
+while line = file.gets
+  puts(line) if line =~ /third/ .. line =~ /fifth/
+end
+```
+
+用在布尔表达式中的 range 的起点和终点本身也可以是表达式。每次求解总体布尔表达式时就会求解起点和终点表达式的值。变量 `$.` 包含当前的输入行号：
+
+```ruby
+File.foreach("ordinal") do |line|
+  if (($. == 1) || line =~ /eig/) .. (($. == 3) || line =~ /nin/)
+    print line
+  end
+end
+```
+
+当使用 while 和 until 做语句修饰符时，有一点需要注意：如果被修饰的语句是一个 `begin/end` 块，那么不管布尔表达式的值是什么，块内的代码至少会执行一次：
+
+```ruby
+print "Hello\n" while false
+begin
+  print "Goodbye\n"
+end while false
+```
+
+#### 7.6.1 迭代器
+
+几种循环方式：
+
+```ruby
+3.times { }
+0.upto(9) {  }
+0.step(12, 3) { }
+[1, 1, 2, 3, 5].each { }
+```
+
+如果一个类支持 each 方法，那么也会自动支持 Enumerable 模块中的方法。例如，可以使用 Enumerable 中的 grep 方法，只迭代满足条件的行：
+
+```ruby
+File.open("ordinal").grep(/d$/) do |line|
+  puts line
+end
+```
+
+#### 7.6.2 For ... In
+
+`for` 基本上是一个语法块，当我们写：
+
+```ruby
+for song in songlist
+  song.play
+end
+```
+
+Ruby 把它转换成：
+
+```ruby
+songlist.each do |song|
+  song.play
+end
+```
+
+`for` 循环和 `each` 形式的唯一区别是循环体中局部变量的作用域。可以使用 for 去迭代任意支持 each 方法的类。
+
+```ruby
+class Periods
+  def each
+    yield "Classical"
+    yield "Jazz"
+    yield "Rock"
+  end
+end
+
+for genre in Periods.new
+  print genre, " "
+end
+```
+
+#### 7.6.3 Break, Redo 和 Next
+
