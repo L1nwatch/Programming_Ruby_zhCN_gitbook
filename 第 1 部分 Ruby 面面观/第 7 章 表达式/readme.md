@@ -437,3 +437,64 @@ end
 
 #### 7.6.3 Break, Redo 和 Next
 
+break 终止最接近的封闭循环体，然后继续执行 block 后面的语句。redo 从循环头重新执行循环，但不重新计算循环条件表达式或者获得迭代中的下一个元素。next 跳到本次循环的末尾，并开始下一次迭代。
+
+在 Ruby 1.8 中，可以传递一个值给 break 和 next。在传统的循环中，这可能只对 break 有意义，此时 break 将设置循环的返回值。（传递给 next 的任意值会被丢掉。）如果传统循环根本没有执行 break，那么它的值是 nil。
+
+```ruby
+result = while line = gets
+  break(line) if line =~ /answer/
+end
+```
+
+#### 7.6.4 Retry
+
+redo 语句使得一个循环重新执行当前的迭代。但是有时你需要从头重新执行一个循环。retry 语句是它重新执行任意类型的迭代式循环。
+
+retry 在重新执行之前会重新计算传递给迭代的所有参数：
+
+```ruby
+def do_until(cond)
+  break if cond
+  yield
+  retry
+end
+i = 0
+do_until(i > 10) do
+  print i, " "
+  i += 1
+end
+```
+
+### 7.7 变量作用域、循环和 Blocks
+
+while、until、for 循环內建到了 Ruby 语言中，但没有引入新的作用域：前面已存在的局部变量可以在循环中使用，而循环中新创建的局部变量也可以在循环后使用。
+
+被迭代器使用的 block（loop 和 each）与此不同。通常，在这些 block 中创建的局部变量无法在 block 外访问
+
+然而，如果执行 block 的时候，一个局部变量已经存在且与 block 中的变量同名，那么 block 将使用此已有的局部变量。因而，它的值在块后面仍然可以使用。
+
+```ruby
+x = nil
+y = nil
+[1, 2, 3].each do |x|
+  y = x + 1
+end
+[x, y] # ->	[3, 4]
+```
+
+注意在外部作用域中变量不必有值：Ruby 解释器只需要看到它即可。
+
+```ruby
+if false
+  a = 1
+end
+3.times { |i| a = i }
+# a ->	2
+```
+
+目前，只能提几条建议以减少局部变量和 block 变量相互干扰带来的问题：
+
+*   使你的方法和 block 尽量简短。变量越少，则它们相互干扰的机会就越少。而且也易于阅读，以检查是否有名字冲突
+*   为局部变量和 block 参数使用不同的命名方式。
+
