@@ -80,3 +80,145 @@ puts "count = #{count}"
 
 #### 11.3.1 监视器
 
+监视器用同步函数对包含一些资源的对象进行了封装。
+
+```ruby
+require "monitor"
+class Counter < Monitor
+  attr_reader :count
+  def initialize
+    @count = 0
+    super
+  end
+  def tick
+    synchronize do
+      @count += 1
+    end
+  end
+end
+c = Counter.new
+t1 = Thread.new { 100_000.times { c.tick } }
+t2 = Thread.new { 100_000.times { c.tick } }
+t1.join; t2. join
+c.count	# ->	200_000
+```
+
+对于特定的监视器对象，每次只有一个线程能够执行 synchronize block 中的代码，所以再也不会有两个线程同时缓存中间结果。
+
+为了获得这些益处，没有必要让我们的类变成 `Monitor` 的子类。也可以 `mix in` 使用监视器的一个变体，`MonitorMixin`
+
+```ruby
+require "monitor"
+class Counter
+  include MonitorMixin
+  # ...
+end
+```
+
+当需要对类中所有对象的所有访问进行同步时，把同步放在需要同步的资源里面是恰当的。但是如果在某些情况下才需要对对象的访问进行同步，或者如果对一组对象进行同步，最好是使用一个外部的监视器。
+
+```ruby
+require "monitor"
+class Counter
+  attr_reader :count
+  def initialize
+    @count = 0
+  end
+  def tick
+    @count += 1
+  end
+end
+
+c = Counter.new
+lock = Monitor.new
+
+t1 = Thread.new { 100_000.times { lock.synchronize { c.tick } } }
+t2 = Thread.new { 100_000.times { lock.synchronize { c.tick } } }
+t1.join; t2.join;
+c.count	# ->	200_000
+```
+
+甚至可以把特定的对象放入监视器（不推荐，可能忘记调用同步函数）。
+
+```ruby
+require "monitor"
+
+class Counter
+  # as before...
+end
+
+c = Counter.new
+c.extend(MonitorMixin)
+
+t1 = Thread.new { 100_000.times { c.synchronize { c.tick } } }
+t2 = Thread.new { 100_000.times { c.synchronize { c.tick } } }
+
+t1.join; t2.join;
+c.count	# ->	200_000
+```
+
+#### 11.3.2 队列
+
+线程库中的 Queue 类实现了一个线程安全的队列机制。多个线程可以添加和从队列中删除对象，保证了每次添加和删除是原子性的操作。
+
+#### 11.3.3 条件变量
+
+条件变量是一种在两个线程之间交换事件（或条件）的受控方式。一个线程等待条件，而另一个发信号通知条件。
+
+涉及方法如下：
+
+```ruby
+# 变量一个：
+ok_to_shutdown = true
+xxx.wait_while { xxx }
+xxx.synchronize do xxx end
+xxx.signal
+xxx.extend
+```
+
+### 11.4 运行多个进程
+
+Ruby 有好几个方法去衍生（spawn）和管理独立进程
+
+#### 11.4.1 衍生新进程
+
+最简单的方式是运行一些命令然后等待它结束。要运行单独的命令或者从主机系统取回数据时，可以使用 system 命令和反引号（或 backtick）方法来实现它。
+
+```ruby
+system("tar xzf test.tgz")	# ->	true
+result = `date`
+result						# ->	"Wed May 3 16:56:19 CDT 2006\n"
+```
+
+`Kernel.system` 方法在子进程中执行给定的命令，如果命令被找到和正确执行了，它会返回 true，否则返回 false。如果失败了，子进程的退出码保存在全局变量 `$?` 中。
+
+使用 System 的问题是，这个命令和程序使用相同的输出流。
+
+很多情况下我们需要更多的控制：跟子进程进行对话，发送数据给它和从它那儿得到数据。`IO.popen` 方法可以这么做，`popen` 方法在子进程里运行命令，把子进程的标准输入和标准输出连接到 Ruby IO 对象。它把数据写入到 IO 对象，子进程可以从它的标准输入中读到。不论子进程写入什么数据，Ruby 程序通过读取 IO 对象来得到它。
+
+`pig` 从标准输入读出单词，同时以 `pig latin` 的形式打印出来。
+
+```ruby
+pig = IO.popen("/usr/local/bin.pig", "w+")
+pig.puts "ice cream after they go to bed"
+pig.close_write	# 不执行这一步的话，pig 程序不会刷新它的输出
+puts pig.gets
+```
+
+如果 popen 被传递的命令 是单个减号（-），`popen` 会创建（fork）新的 Ruby 解释器。这个解释器和原先的解释器在 popen 返回后都会继续运行。原先的进程会接受到 IO 对象，而子进程得到 `nil`。这个函数只能在支持 `fork(2)` 调用（因而不包括 Windows）的操作系统上工作。
+
+```ruby
+pipe = IO.popen("-", "w+")
+if pipe
+  pipe.puts "Get a job!"
+  STDERR.puts "Child syas '#{pipe.gets.chomp}'"
+else
+  STDERR.puts "Dad says '#{gets.chomp}"
+  puts "OK"
+end
+```
+
+除了 popen 方法，一些平台支持 `Kernel.fork`、`Kernel.exec` 和 `IO.pipe` 方法。如果把 | 作为文件名的第一个字符，许多符合文件命名惯例的 IO 方法和 `Kernel.open` 也会衍生子进程。注意不能使用 `File.new` 创建管道，它只是用来创建文件。
+
+#### 11.4.2 独立子进程
+
