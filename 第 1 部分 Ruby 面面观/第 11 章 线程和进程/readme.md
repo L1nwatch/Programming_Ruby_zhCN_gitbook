@@ -222,3 +222,37 @@ end
 
 #### 11.4.2 独立子进程
 
+`Kernel.fork` 调用会在父进程中返回进程 ID，在子进程中返回 `nil`，这样子进程会执行 `Kernel.exec` 并执行我们想要的操作，然后调用 `Process.wait` 等待操作结束（同时返回它的进程 ID）
+
+如果更愿意在子进程结束时收到通知，而不是在那儿傻等，可以使用 `Kernel.trap` 设置信号处理方法。这里在 SIGCLD 上设置了 trap，子进程终止时 SIGCLD 信号会被发给父进程。
+
+```ruby
+trap("CLD") do
+  pid = Process.wait
+  puts "Child pid #{pid}: terminated"
+end
+exec("sort testfile > output.txt") if fork.nil?
+# do other stuff
+```
+
+#### 11.4.3 block 和子进程
+
+`IO.popen` 与 block 相伴工作，如果把命令传给它，一个 IO 对象会作为参数传递给 block。
+
+```ruby
+IO.popen("date") { |f| puts "Date is #{f.gets}" }
+```
+
+如果用 `Kernel.fork` 关联 block，block 中的代码会在 Ruby 子进程中运行，父进程会在 block 后面继续运行
+
+```ruby
+fork do
+  puts "In child, pid = #$$"
+  exit 99
+end
+pid = Process.wait
+puts "Child terminated, pid = #{pid}, status = #{$?.exitstatus}"
+```
+
+`$?` 是全局变量，它包含子进程结束时的信息。
+
