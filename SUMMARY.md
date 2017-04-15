@@ -14,4 +14,6 @@
         * [第 10 章 基本输入和输出](第 1 部分 Ruby 面面观/第 10 章 基本输入和输出/readme.md)
         * [第 11 章 线程和进程](第 1 部分 Ruby 面面观/第 11 章 线程和进程/readme.md)
         * [第 12 章 单元测试](第 1 部分 Ruby 面面观/第 12 章 单元测试/readme.md)
-        
+        * [第 13 章 当遇到麻烦时](第 1 部分 Ruby 面面观/第 13 章 当遇到麻烦时/readme.md)
+    * [第 2 部分 Ruby 与其环境](第 2 部分 Ruby 与其环境/readme.md)
+        * [第 14 章 Ruby 和 Ruby 世界](第 2 部分 Ruby 与其环境/第 14 章 Ruby 和 Ruby 世界/readme.md)

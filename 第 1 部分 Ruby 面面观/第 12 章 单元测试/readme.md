@@ -85,3 +85,84 @@ end
 
 ### 12.3 组织和运行测试
 
+可以使用下面的形式从命令行运行测试：
+
+```shell
+ruby test_roman.rb
+```
+
+如果希望可以让它运行一个特定的测试方法：
+
+```ruby
+ruby test_roman.rb --name test_range
+```
+
+#### 12.3.1 何处存放测试
+
+一般的解决方法是建立一个 `test/` 目录，将你所有的测试源文件放置其中。
+
+```shell
+roman
+	|_	lib/
+		|_	roman.rb
+		|_	other files...
+	|_ test/
+		|_ test_roman.rb
+		|_ other files...
+	|_ other stuff
+```
+
+ 如何告诉 Ruby 到哪里查找要测试的库文件？一种不太可靠的方法是，将路径放到测试文件的 `require` 语句中，然后从 `test/` 子目录中运行测试。
+
+一种稍好些的解决方法是，从被测试库的父目录中运行测试。
+
+推荐的做法，在你的测试代码的头部中添加下面的代码行：
+
+```ruby
+$:.unshift File.join(File.dirname(__FILE__), "..", "lib")
+require ...
+```
+
+这种技法可以工作，是因为测试代码相对被测试代码的存放位置是已知的。它首先得出测试文件运行所在的目录，然后构造被测试文件的路径。这个目录被加入加载路径（变量 `$:`）的前部。之后，类似如 `require 'roman'` 的代码将首先搜索到被测试的库
+
+#### 12.3.2 测试套件
+
+你可以将测试用例一并组成测试套件（`test suite`），然后以组的形式运行它们。
+
+你所要做的，就是创建一个要求加载 `test/unit` 的 Ruby 文件，然后要求加载每个你希望成组的、包含测试用例的文件。
+
+命名约定：测试用例在以 `tc_xxx` 命名的文件中，而测试套件在 `ts_xxx` 命名的文件中。
+
+```ruby
+# file ts_dbaccess.rb
+require "test/unit"
+require "tc_connect"
+require "tc_query"
+# ...
+```
+
+现在，如果你运行 `ts_dbaccess.rb`，将会执行所要求加载的文件中的全部测试用例。
+
+方法大全：
+
+```ruby
+assert
+assert_nil
+assert_not_nil
+assert_equal
+assert_not_equal
+assert_in_delta
+assert_raise
+assert_nothing_raised
+assert_instance_of
+assert_kind_of
+assert_respond_to
+assert_match
+assert_no_match
+assert_same
+assert_not_same
+assert_operator
+assert_throws
+assert_send
+flunk
+```
