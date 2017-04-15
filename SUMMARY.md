@@ -17,3 +17,4 @@
         * [第 13 章 当遇到麻烦时](第 1 部分 Ruby 面面观/第 13 章 当遇到麻烦时/readme.md)
     * [第 2 部分 Ruby 与其环境](第 2 部分 Ruby 与其环境/readme.md)
         * [第 14 章 Ruby 和 Ruby 世界](第 2 部分 Ruby 与其环境/第 14 章 Ruby 和 Ruby 世界/readme.md)
+        * [第 15 章 交互式 Ruby Shell](第 2 部分 Ruby 与其环境/第 15 章 交互式 Ruby Shell/readme.md)
