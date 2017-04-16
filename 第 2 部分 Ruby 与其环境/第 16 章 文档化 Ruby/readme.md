@@ -111,3 +111,105 @@ end
 
 #### 16.1.4 文档修饰符
 
+方法的参数列表将被提取出来和方法的描述一块显示。如果一个方法调用 `yield`，那么传递给 `yield` 的参数也将被显示出来。
+
+```ruby
+def fred
+  # xxx
+  yield line, address
+end
+```
+
+这将产生如下的文档：
+
+```ruby
+fred() {|line, address| ... }
+```
+
+当方法定义在同一行时，使用含有 `:yields:` 的注释，可以改变这种默认行为：
+
+```ruby
+def fred #			#:yields: index, position
+  # xxx
+  yield line, address
+end
+```
+
+将获得如下文档：
+
+```ruby
+fred() {|index, position| ... }
+```
+
+`:yields:` 是一个文档修饰符，其他修饰符包括：`:nodocz:`、`:doc:` 等等
+
+### 16.2 向 C 扩展中添加 RDoc
+
+RDoc 也能理解很多用 C 为 Ruby 写扩展的惯例。
+
+大多数 C 扩展有一个 `Init__Classname` 的方法。RDoc 认为这是类的定义——`Init_` 方法前的任何 C 注释都被当做该类的文档。
+
+`Init_` 函数通常被用来关联 C 函数和 Ruby 方法名。例如，Cipher 扩展可能会定义一个名为 `salt=` 的 Ruby 方法，该方法是通过如下函数来由 C 函数 `salt_set` 实现的。
+
+```ruby
+rb_define_method(cCipher, "salt=", salt_set, 1);
+```
+
+RDoc 会解析此调用，添加 `salt=` 方法到类文档中。然后搜索函数 `salt_set` 的 C 源代码。如果该函数前面有注释，那么 RDoc 会用该注释作为 `salt` 方法的文档。
+
+然而 RDoc 不能识别相应的 Ruby 方法的调用序列。你可以通过在函数注释中使用 `call-seq` 指令解决此问题。`call-seq` 后面的行（直到空行）被用来文档化方法的调用序列。
+
+可以使用 `Document-class:` 和 `Document-method:` 指令来指明一个 C 注释分别和给定的类或者方法相关联。这两个修饰符以被注释的 Ruby 类或方法的名字作为参数。
+
+最后，也可以在 `Init_` 方法中将 Ruby 方法与处于不同 C 源文件中的 C 函数相关联。但是没有你的帮助，RDoc 也无法找到这个函数。你可以通过为方法调用添加注释来指明包含函数定义的文件。
+
+```c++
+rb_define_method(cCipher, "md5", gen_md5, -1);	// in md5.c
+```
+
+### 16.3 运行 RDoc
+
+可以用下面的命令来运行 RDoc：
+
+```shell
+rdoc [options] [filenames ...]
+```
+
+输入 `rdoc --help` 可以得到最新的选项概述。
+
+在生成任何输出之前，将先对文件进行解析，并收集它们所含有的信息。这样就可以处理所有文件之间的交叉索引。如果文件是一个目录，将会遍历其含有的所有文件。如果没有提供文件名，那么会处理当前目录（及其子目录）的所有 Ruby 文件。
+
+典型的用法是为 Ruby 源代码包（例如 RDoc 自身）生成文档。
+
+```shell
+rdoc
+```
+
+本命令会为当前目录及其子目录内的所有 Ruby 源文件和 C 源文件生成 HTML 文档。这些文档会被存储在 doc/ 子目录下的文档树中。
+
+RDoc 使用文件后缀名来确定如何处理每个文件。名字以 `.rb` 和 `.rbw` 结尾的文件被认为是 Ruby 源文件。以 `.c` 结尾的文件被当做 C 文件来处理。其他所有文件被认为只含有标记（有或者没有 `#` 开头的注释标记）。如果目录名被传递给 RDoc，只递归扫描其中的 C 和 Ruby 源文件。
+
+可以在你的项目目录下创建一个 `.document` 文件。如果 RDoc 进入含有 `.document` 文件的目录，那么 RDoc 仅处理该文件内列出的文件。该文件的每一行可以是文件名、目录名或者是一个通配符（文件系统的 ”glob" 模式）。
+
+#### 16.3.1 为 ri 创建文档
+
+RDoc 也可以创建能被 ri 命令显示的文档。
+
+当你运行 ri 时，默认情况下它会到 3 个地方去搜索文档：
+
+*   system 文档目录
+*   site 目录
+*   用户的目录
+
+可以使用下面的命令找到本地的 datadir：
+
+```shell
+ruby -r rbconfig -e 'p Config::CONFIG["datadir"]'
+```
+
+为了添加文档到 ri，你需要告诉 RDoc 使用哪个输出目录。可以使用 `--ri` 选项（for yourself），或者安装文档到系统范围内（`--ri-site`），而 `--ri-system` 仅被用来为 Ruby 內建的类和标准库安装文档。
+
+### 16.4 显示程序用法信息
+
+可以用 `RDoc::usage` 直接从注释命令中将使用说明提取出来显示给用户，而不用在程序的某个地方使用 puts 重复这些消息。
+

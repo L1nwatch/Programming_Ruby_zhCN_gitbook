@@ -19,3 +19,4 @@
         * [第 14 章 Ruby 和 Ruby 世界](第 2 部分 Ruby 与其环境/第 14 章 Ruby 和 Ruby 世界/readme.md)
         * [第 15 章 交互式 Ruby Shell](第 2 部分 Ruby 与其环境/第 15 章 交互式 Ruby Shell/readme.md)
         * [第 16 章 文档化 Ruby](第 2 部分 Ruby 与其环境/第 16 章 文档化 Ruby/readme.md)
+        * [第 17 章 用 RubyGems 进行包的管理](第 2 部分 Ruby 与其环境/第 17 章 用 RubyGems 进行包的管理/readme.md)
