@@ -160,3 +160,46 @@ irb > var				# =>	0
 
 ### 15.5 rtags 与 xmp
 
+#### rtags
+
+rtags  是一个用来创建 Emacs 或 vi 编辑器所使用的 TAGS 文件的工具。
+
+```shell
+rtags [-vi] [files] ...
+```
+
+默认的，rtags 创建一个适合 Emacs 使用的 TAGS 文件。`-vi` 选项生成适合 vi 使用的 TAGS 文件。
+
+rtags 的安装方式和 irb 相同（也就是你需要把 irb 安装到库路径中，并创建一个由 `irb/rtags.rb` 到 `bin/rtags` 的链接）
+
+#### xmp
+
+irb 的 xmp 是一个“示例打印程序”。在运行时显示每个表达式的值。在 irb 归档中也有另一个独立的 xmp。
+
+xmp 可以按如下使用：
+
+```ruby
+require "irb/xmp"
+xmp <<END
+artist = "Doc Severinsen"
+artist.upcase
+END
+```
+
+或者，xmp 可以作为一个对象实例。以这种方式使用，xmp 对象维护调用之间的上下文。
+
+```ruby
+require "irb/xmp"
+x = XMP.new
+x.puts 'artist = "Louis Prima"'
+x.puts 'artist.upcase'
+```
+
+你可以用任何形式明确地提供一个绑定：否则 xmp 使用调用者的环境。
+
+```ruby
+xmp code_string, abinding
+XMP.new(abinding)
+```
+
+注意 xmp 不支持多线程。
