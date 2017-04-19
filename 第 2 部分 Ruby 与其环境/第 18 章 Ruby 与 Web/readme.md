@@ -323,7 +323,7 @@ class InterestCalculator
   end
   def compound(principal, rate, freq, years)
     @call_count += 1
-    principal * (1.0 + rate//freq) ** (freq * years)
+    principal * (1.0 + rate/freq) ** (freq * years)
   end
 end
 ```
