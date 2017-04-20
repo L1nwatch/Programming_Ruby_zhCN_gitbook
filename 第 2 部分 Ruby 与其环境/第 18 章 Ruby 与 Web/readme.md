@@ -352,9 +352,50 @@ svr.start
 
 ```ruby
 require "soap/rpc/driver"
+proxy = SOAP::RPC::Driver.new("http://localhost:12321",
+  "http://pragprog.com/InterestCalc")
+proxy.add_method("compound", "principal", "rate", "freq", "years")
+proxy.add_method("call_count")
+puts "#{proxy.call_count}"
+puts "#{proxy.compound(100, 0.06, 1, 5)}"
 ```
 
+要测试它，可以在终端窗口运行服务器及客户端：
 
+```shell
+terminal1% ruby server.rb 
+terminal2% ruby client.rb
+```
+
+可以注意到，当第二次运行客户端时，调用次数从 2 开始。服务器创建了单独一个 InterestCalculator 对象来服务进入的请求，且这个对象为每个请求所重用。
+
+#### 18.5.1 SOAP 和 Google
+
+SOAP 的真正好处是，让你可以和其他的 Web 服务交互。
+
+在向 Google 发送查询之前，需要开发者密钥。可以使用 `add_method` 调用为 `doGoogleSearch` 方法构造一个 SOAP 代理。
+
+不过 SOAP 支持动态地发现服务器上对象的接口。这是使用 WSDL（Web Services Description Language）来完成的。WSDL 文件是一个 XML 文档，描述了一个 Web 服务接口的类型、方法以及访问的机制。SOAP 客户端可以读取 WSDL 文件来自动创建访问服务器的接口。
+
+最后，可以使用 Google 库（可以从 RAA 得到）来更进一步。它将 Web 服务 API 封装到一个漂亮的借口后面（消除了所有额外的参数）。
+
+```ruby
+require "google"
+require "cgi"
+key = File.read(File.join(ENV["HOME"], ".google_key")).chomp
+google = Google::Search.new(key)
+result = google.search("pragmatic")
+printf "%d", result.estimatedTotalResultsCount
+printf "%6f", result.searchTime
+first = result.resultElements[0]
+puts first.title
+puts first.url
+puts CGI.unescapeHTML(first.snippet)
+```
+
+### 18.6 更多信息
+
+如果觉得 SOAP 有些复杂，可以考察使用 XML-RPC。
 
 
 
