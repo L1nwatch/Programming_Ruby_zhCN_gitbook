@@ -36,3 +36,18 @@
     * 19.4 画布
     * 19.5 滚动
     * 19.6 从 `Perl/Tk` 文档注释
+* 第 20 章 Ruby 和 微软 Windows 系统
+    * 20.1 得到 Ruby for Windows
+    * 20.2 在 Windows 下运行 Ruby
+    * 20.3 Win32API
+    * 20.4 Windows 自动化
+* 第 21 章 扩展 Ruby
+    * 21.1 你的第一个扩展
+    * 21.2 C 中的 Ruby 扩展
+    * 21.3 Jukebox 扩展
+    * 21.4 内存分配
+    * 21.5 Ruby 的类型系统
+    * 21.6 创建一个扩展
+    * 21.7 内嵌 Ruby 解释器
+    * 21.8 将 Ruby 连接到其他语言
+    * 21.9 Ruby C 语言 API

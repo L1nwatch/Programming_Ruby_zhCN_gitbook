@@ -22,3 +22,6 @@
         * [第 17 章 用 RubyGems 进行包的管理](第 2 部分 Ruby 与其环境/第 17 章 用 RubyGems 进行包的管理/readme.md)
         * [第 18 章 Ruby 与 Web](第 2 部分 Ruby 与其环境/第 18 章 Ruby 与 Web/readme.md)
         * [第 19 章 Ruby Tk](第 2 部分 Ruby 与其环境/第 19 章 Ruby Tk/readme.md)
+        * [第 19 章 Ruby Tk](第 2 部分 Ruby 与其环境/第 19 章 Ruby Tk/readme.md)
+        * [第 20 章 Ruby 和微软 Windows 系统](第 2 部分 Ruby 与其环境/第 20 章 Ruby 和微软 Windows 系统/readme.md)
+        * [第 21 章 扩展 Ruby](第 2 部分 Ruby 与其环境/第 21 章 扩展 Ruby/readme.md)
