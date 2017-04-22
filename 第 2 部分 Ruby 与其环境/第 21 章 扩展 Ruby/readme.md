@@ -203,3 +203,120 @@ RARRAY(arr)->ptr;
 
 #### 21.2.4 全局变量
 
+多数时候，由你的扩展实现类，而 Ruby 代码使用这些类。你在 Ruby 和 C 代码中共享的数据，会整洁地包装（wrap）到类的对象中。
+
+有时候你希望实现全局变量，最简单的方法是，让变量作为一个 VALUE（也就是说，一个 Ruby 对象）。然后你可以将 C 变量的地址绑定到一个 Ruby 变量的名字。在这种情况下，`$` 前缀是可选的，但是它可以帮助你澄清这是一个全局变量。注意一点，让栈中的变量作为 Ruby 的全局变量，不会（长期）有效。
+
+```c++
+static VALUE hardware_list;
+static VALUE Init_SysInfo() {
+  rb_define_class(....);
+  hardware_list = rb_ary_new();
+  rb_define_variable("$hardware", &hardware_list);
+  // ...
+  rb_ary_push(hardware_list, rb_str_new2("DVD"));
+  rb_ary_push(hardware_list, rb_str_new2("CDPlayer1"));
+  rb_ary_push(hardware_list, rb_str_new2("CDPlayer2"));
+}
+```
+
+Ruby 端可以用 `$hardware` 来访问 C 变量 `hardware_list`。
+
+也许你要定义的全局变量，它的值在访问时必须通过计算才能得到。你可以通过定义 `hooked` 和虚拟（virtual）变量来完成。`hooked` 变量是一个真实的变量，当访问到对应的 Ruby 变量时，由一个具名（named）的函数初始化。虚拟变量也有些类似，但并没有真正的存储：它们的值来自于对 hook 函数的求值。
+
+如果你从 C 创建一个 Ruby 对象，把它保存在一个 C 全局变量中，而不将它暴露给 Ruby，你至少要将它告知给垃圾收集器，以免疏忽而忘记回收。
+
+```c++
+static VALUE obj;
+// ...
+obj = rb_ary_new();
+rb_global_variable(obj);
+```
+
+### 21.3 Jukebox 扩展
+
+#### 21.3.1 包装 C 结构
+
+任何时候，你想要如 Ruby 对象那样来处理一个 C 结构，你需要将它包装（wrap）成一个特殊的 Ruby 内部类，称为 DATA（类型为 `T_DATA`）。有两个宏完成这一包装，其中一个宏会再次返回你的结构。
+
+#### 21.3.2 API：C 数据类型的包装
+
+```c++
+VALUE Data_Wrap_Struct(VALUE class, void (*mark)(), void (*free)(), void *ptr)
+```
+
+包装给定的 C 数据类型 ptr，注册两个垃圾回收例程，并返回一个指向实际 Ruby 对象的 VALUE 指针。返回对象的 C 类型是 `T_DATA`，且它的 Ruby 类是 class。
+
+```c++
+VALUE Data_Make_Struct(VALUE class, c-type, void (*mark)(), void (*free)(), c-type *)
+```
+
+分配指定类型的结构体并清零，然后继续 `Data_Wrap_Struct` 的工作。`c-type` 是你要包装的 C 数据类型的名字，而不是类型的变量。
+
+```c++
+Data_Get_Struct(VALUE obj, c-type, c-type *)
+```
+
+返回原本的指针。这个宏是对宏 `DATA_PTR(obj)` 的类型安全的包装，它会对指针进行评估。
+
+`Data_Wrap_Struct` 创建的对象是普通的 Ruby 对象，唯一不同的是它有额外的、无法从 Ruby 中访问的 C 数据类型。C 数据类型和对象所包含的实例变量是分开的。
+
+Ruby 使用标记和清扫（mark and sweep）的垃圾回收方式。在标记阶段，Ruby 查找指向内存区域的指针。它标记这些区域为“使用中”。如果这些区域本身包括更多的指针，这些指针所指向的内存也会被标记，以此类推。在标记的最后阶段，所有被引用的内存已经被标记了，而所有孤立的区域则不会有标记。当清扫阶段开始时，释放那些没有被标记的内存。
+
+为了参与到 Ruby 标记后清扫的垃圾回收过程，你必须定义一个例程来释放你的结构，或者还需要一个例程来完成从你的结构到其他结构的引用标记。两个例程都接收 void 指针，它指向了你的结构。mark 例程在垃圾回收器处于标记阶段被调用。如果你的结构引用了其他的 Ruby 对象，那么你的标记函数需要用 `rb_gc_mark(value)` 来标识出这些对象。如果结构没有引用其他的 Ruby 对象，你可以简单地以 0 作为函数的指针。
+
+当对象需要清除时，垃圾收集器将调用 `free` 例程来释放它。如果你自己分配了某些内存（例如，使用 `Data_Make_Struct`），你需要传入一个释放函数——即便它就是标准 C 库中的 free 例程。对你分配的复杂结构，你的释放函数可能需要遍历这个结构来释放所有分配的内存。
+
+#### 21.3.3 对象创建
+
+Ruby 1.8 完善了对象的创建和初始化。虽然旧有的方式也可以工作，但是使用分配函数的新方式，要整洁得多。
+
+我们需要实现一个分配函数以及一个初始化方法。
+
+#### 21.3.4 分配函数
+
+分配函数负责创建对象使用的内存。如果你所实现的对象，并不需要除 Ruby 实例变量之外的数据，那么你无须编写一个分配函数——Ruby 默认的分配器就可以满足了。但是如果你的类包装了一个 C 结构，你需要在分配函数中为这个结构分配空间。分配函数将要分配对象的类（class）作为参数。
+
+```c++
+static VALUE cd_alloc(VALUE klass){
+  CDJukebox *jukebox;
+  VALUE obj;
+  
+  jukebox = new_jukebox();
+  obj = Data_Wrap_Struct(klass, 0, cd_free, jukebox);
+  
+  return obj;
+}
+```
+
+你还需要在类的初始化代码中注册你的分配函数。
+
+```c++
+void Init_CDPlayer() {
+  cCDPlayer = rb_define_class("CDPlayer", rb_cObject);
+  rb_define_alloc_func(cCDPlayer, cd_alloc);
+  // ...
+}
+```
+
+大部分对象可能也需要定义一个初始化函数。分配函数创建一个空的、未初始化的对象，而我们需要填入具体的值。
+
+```c++
+static VALUE cd_initialize(VALUE self, VALUE unit) {
+  int unit_id;
+  CDJukebox *jb;
+  Data_Get_Struct(self, CDJukebox, jb);
+  unit_id = NUM2INT(unit);
+  assign_jukebox(jb, unit_id);
+  return self;
+}
+```
+
+这种多步对象创建协议的原因是，让解释器能够处理必须以 “后门方式” 创建对象的情况。一个例子是，当对象要从列集的（marshaled）形式中反序列化时。此时，解释器需要创建一个空的对象（通过调用分配器），但是它不会调用初始化函数（因为它不知道要使用的参数）。另一个常见的情况是，当对象被复制或克隆时。
+
+因为用户可以选择绕过构造函数，你需要确保分配代码使返回的对象处于有效状态。它可能并没有包括曾经由 `#initialize` 设置的全部信息，但是至少应该是可用的。
+
+#### 21.3.5 克隆对象
+
+
+
