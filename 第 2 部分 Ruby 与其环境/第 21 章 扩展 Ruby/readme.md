@@ -318,5 +318,204 @@ static VALUE cd_initialize(VALUE self, VALUE unit) {
 
 #### 21.3.5 克隆对象
 
+所有 Ruby 对象都可以使用 dup 或 clone 方法来拷贝。两者都会通过调用分配函数产生调用类的一个新实例。然后，它们从原来的对象中拷贝实例变量。`clone` 会拷贝得更深入些，它会拷贝原来对象的单体类（singleton class）和标志（例如指示对象被冻结的标志）。你可以认为 dup 是内容的拷贝，而 clone 是整个对象的拷贝。
 
+不过，Ruby 解释器并不知道如何处理你编写的 C 扩展中对象的内部状态。
 
+>   1.8 版本之前的对象分配
+>
+>   在 Ruby 1.8 之前，如果你想要在对象中分配额外的空间，要么你将代码放到 initialize 方法中，要么你必须为你的类定义一个 new 方法。建议使用下面的混合方法，来做到 1.6 和 1.8 扩展间最大的兼容。
+>
+>   ```c++
+>   static VALUE cd_alloc(VALUE klass) {
+>     // same as before
+>   }
+>   static VALUE cd_new(int argc, VALUE *argv, VALUE klass) {
+>     VALUE obj = rb_funcall2(klass), rb_intern("allocate"), 0, 0);
+>     rb_obj_call_init(obj, argc, argv);
+>     return obj;
+>   }
+>   void init_CDPlayer() {
+>     // ...
+>   #if HAVE_RB_DEFINE_ALLOC_FUNC
+>     // 1.8 allocation
+>     rb_define_alloc_func(cCDPlayer, cd_alloc);
+>   #else
+>     // define manual allocation function for 1.6
+>     rb_define_singleton_method(cCDPlayer, "allocate", cd_alloc, 0);
+>   #endif
+>     rb_define_singleton_method(cCDPlayer, "new", cd_new, -1);
+>     // ...
+>   }
+>   ```
+>
+>   不过，你可能还需要处理克隆和复制，并考虑当你的对象被列集时会如何。
+
+为了处理它，解释器将拷贝对象内部状态的职责委托给你自己的代码。在拷贝对象的实例变量之后，解释器调用新对象的 `initialize_copy` 方法，传入原对象的引用。
+
+#### 21.3.6 集成到一起
+
+略
+
+### 21.4 内存分配
+
+有时你可能需要在扩展中分配内存，但不用于对象的存储——也许你已经得到了 Bloom 滤波器（Bloom filter）一个巨大的位图（bitmap）或者 Ruby 并不直接使用的许多小的数据结构。
+
+为了让垃圾收集器正确地工作，应该使用下面的内存分配例程。这些例程比标准的 `malloc` 稍稍多做了些工作。例如，如果 `ALLOC_N` 判断它无法分配得到所需数量的内存，将会调用垃圾收集器来尝试收回一些空间。如果无法分配或者所需数量的内存不可获得，它将引发一个 `NoMemError` 异常。
+
+#### 21.4.1 API：内存分配
+
+```c++
+type * ALLOC_N(c-type, n)	// 分配 n 个 c-type 的对象，其中 c-type 是 C 类型的字面名称，而非该类型的变量
+type * ALLOC(c-type)		// 分配一个 c-type，并且将结果转型为该类型的指针
+REALLOC_N(var, c-type, n)	// 重新分配 n 个 c-type，并将结果复制给指针 var，它指向类型为 c-type 的变量
+type * ALLOCA_N(c-type, n)	// 在栈上分配 c-type 的 n 个对象——这部分内存会在调用 ALLOCA_N 的函数返回时自动释放
+```
+
+### 21.5 Ruby 的类型系统
+
+在 Ruby 中，我们很少依赖于一个对象的类型（或 class），而更多地关注于它的能力，这被称为 `duck typing`。
+
+作为一个扩展的编写者，应该尝试避免检查传递给你的参数类型。看看是否有类似 `rb_check_xxx_type` 的方法帮你将参数转换到你需要的类型。如果没有，查找现有的某个可以帮助你进行转换的函数（例如 `rb_Array` ）。如果实现的某些对象可以有意义地用作一个 Ruby 字符串或数组，考虑实现 `to_str` 或 `to_ary` 方法，允许扩展所实现的对象被用于字符串或数组的上下文中。
+
+### 21.6 创建一个扩展
+
+基本的步骤：
+
+*   在指定的目录创建 C 源文件
+*   在 `lib` 子目录中创建所有 Ruby 的支持文件（可选）
+*   创建 `extconf.rb`
+*   运行 `extconf.rb` 来为目录中的 C 文件创建 `Makefile`
+*   运行 `make`
+*   运行 `make install`
+
+#### 21.6.1 通过 `extconf.rb` 创建 `Makefile`
+
+构建扩展的总体流程，关键是，你作为开发者所创建的 `extconf.rb` 程序。在 `extconf.rb` 中，你编写一个简单的程序来判断在用户系统中有哪些特性可用，以及这些特性位于何处。执行 `extconf.rb` 会建立一个定制的 `Makefile`，它是根据你的应用和编译时所用的系统来裁剪的。当你对该 Makefile 运行 make 命令时，你的扩展被构建并（可选地）安装。
+
+最简单的 `extconf.rb` 可能只有两行，而对许多扩展来说已经足够了。
+
+```ruby
+require "mkmf"
+create_makefile("Test")
+```
+
+第一行引入了 mkmf 库模块。它包括了所有我们要使用的命令。第二行位名为 "Test" 的扩展创建一个 Makefile（makefile 的名字总是 Makefile）。Test 将会从当前目录中的 C 源文件构建，当你的代码被加载时，Ruby 调用它的 `Init_Test`  方法。
+
+假设在只有一个源文件（main.c）的目录中执行 `extconf.rb` 程序，其结果是用来构建我们扩展的一个 `makefile`。在 Linux 机器上，它执行下面的命令。
+
+```shell
+gcc -fPIC -I/usr/local/lib/ruby/1.8/i686-linux -g -02 -c main.c -o main.o
+gcc -shared -o Test.so main.o -lc
+```
+
+编译的结果是 `Test.so`，可以通过 `require` 在运行时动态地链接到 Ruby 中。
+
+如果你的扩展需要默认默认编译环境所没有的某些头文件或库，或者你根据某些库或函数的存在与否来进行条件编译，你还需要多做些工作。
+
+一个常见的需求是指定查找头文件和库的非标准目录。首先，你的 `extconf.rb` 应该包括一个或多个 `dir_config` 命令。这指定了一个目录集合的标记。然后，当你运行 `extconf.rb` 程序时，告诉 mkmf 在当前系统中对应的物理目录在什么地方。
+
+>   划分命名空间
+>
+>   与其将扩展编写者的工作直接安装到 Ruby 的某个库目录中，还不如使用子目录将文件组织起来。这对 `extconf.rb` 很简单，如果 `create_makefile` 调用的参数包括斜线，那么 `mkmf` 会认为在最后一个斜线之前的是目录名，而余下的是扩展的名字。扩展会被安装到指定的目录中（相对 Ruby 的目录树）。
+>
+>   ```ruby
+>   require "mkmf"
+>   create_makefile("wibble/Test")
+>   ```
+>
+>   然而，当需要这个类时：
+>
+>   ```ruby
+>   require "wibble/Test"
+>   ```
+
+如果 `extconf.rb` 包括 `dir_config(name)` 的代码行，你可以用命令行选项给出对应目录的位置。
+
+```c++
+--with-name-include=directory	// 将 directory/include 添加到编译器的选项中
+--with-name-lib=directory		// 将 directory/lib 添加到链接器的选项中
+--with-name-dir=directory		// 将 directory/lib 和 directory/include 分别添加到链接器和编译器的选项中
+```
+
+你也可以使用为你的机器构建 Ruby 时所使用的 `--with` 选项。这意味着，你可以发现并使用 Ruby 本身使用库的位置。
+
+```shell
+% ruby extconf.rb=--with-cdjukebox-dir=/usr/local/cdjb
+```
+
+产生的 Makefile 会认为 `/usr/local/cdjb/lib` 含有库文件，而 `/usr/local/cdjb/include` 含有头文件。
+
+`dir_config` 命令添加用于搜索库和头文件的位置列表。但它并不会将这些库链接到你的应用。
+
+`have_library` 查找某个具名库的指定入口点。如果它找到这个入口点，便将这个库添加到链接扩展所使用库的列表中。`find_library` 与之类似，它允许你指定一个目录列表来搜索库。
+
+某个特定库的位置可能会因主机系统的不同而不同。
+
+标准的 Ruby 发布，它只尝试编译你的系统所支持的那些扩展。
+
+`have_header` 查找头文件；`have_func` 检查目标环境中的所有库是否支持某个特定的函数。
+
+如果 `have_header` 或 `have_func` 找到了目标，它们均会定义预处理器的常量。名字的形式是，将目标名转换为大写字母且在前面加上 `HAVE_`。你的 C 代码则可以利用这一宏定义，例如：
+
+```c++
+#if defined(HAVE_HP_MP3_H)
+# include <hp_mp3.h>
+#endif
+#if defined(HAVE_SETPRIORITY)
+ err = setpriority(PRIOR_PROCESS, 0, -10)
+#endif
+```
+
+如果你有特殊的需要，而这些 mkmf 的命令无法满足时，你的程序可以直接向全局变量 `$CFLAGS` 和 `$LFLAGS` 中添加选项，这些选项会被分别传入到编译器和链接器。
+
+##### 安装目标
+
+你的 `extconf.rb` 所产生的 Makefile，会包括一个 `install` 目标。它会将你的共享库对象正确拷贝到你（或你用户）的本地文件系统中。目标与你运行 `extconf.rb` 时使用的 Ruby 解释器的安装位置有关。如果你的系统中安装了多个 Ruby 解释器，你的扩展会被安装到那个运行 `extconf.rb` 的 Ruby 解释器的目录树中。
+
+除了安装共享库之外，`extconf.rb` 还会查看是否存在 `lib/` 子目录。如果有，它会将这些 Ruby 文件随着共享库一同安装。如果你将编写扩展的工作分成两部分，包括底层的 C 代码和高层的 Ruby 代码时，这很有用。
+
+#### 21.6.2 静态链接
+
+如果你的系统不支持动态链接，或者如果你有一个扩展模块希望静态链接到 Ruby 本身，编辑 Ruby 发布中的 `ext/Setup` 将扩展的目录列表添加到该文件中。在扩展的目录中，创建一个名为 `MANIFEST` 的文件，其中包括扩展的所有文件（源文件、`extconf.rb`、`lib/` 等等）。然后重新构建 Ruby。Setup 中列出的扩展将会被静态地链接到 Ruby 可执行程序中。如果你想禁止所有的动态链接，并静态链接所有的扩展，编辑 `ext/Setup` 加入下面的选项：
+
+```shell
+option nodynamic
+```
+
+#### 21.6.3 一个捷径
+
+如果你希望扩展一个现有的用 C 或 C++ 编写的库，你可以调查一下 SWIG。SWIG 是一个接口生成器：它使用库的定义（通常从头文件获得）并自动生成从其他语言访问这个库的粘合（glue）代码。SWIG 支持 Ruby，意味着它可以生成将外部库包装到（wrap）Ruby 类的 C 源文件。
+
+### 21.7 内嵌 Ruby 解释器
+
+除了通过添加 C 代码来扩展 Ruby 外，你还可以把 Ruby 嵌入到你的应用中。你有两种方式来这么做。一种是通过调用 `ruby_run` 来让解释器得到控制权，但这样解释器永远不会从 `ruby_run` 调用中返回。
+
+```c++
+#include "ruby.h"
+int main(void) {
+  ruby_init();
+  ruby_init_loadpath();
+  ruby_script("embedded")
+  rb_load_file("start.rb");
+  ruby_run();
+  exit(0);
+}
+```
+
+为了初始化 Ruby 解释器，还可以调用 `ruby_init()`。但是在某些平台上，你需要在此之前施行一些特殊的步骤。
+
+```c++
+#if defined(NT)
+ NTInitialize(&argc, &argv);
+#endif
+#if defined(__MACOS__) && defined(__MWERKS__)
+  argc = ccommand(&argv);
+#endif
+```
+
+查看 Ruby 发布中的 `main.c`，看看你的平台需要哪些特殊的宏定义或设置。
+
+你需要 Ruby 的头文件和库文件来编译这些嵌入的代码。
+
+第二种嵌入 Ruby 的方式是，
