@@ -25,3 +25,5 @@
         * [第 19 章 Ruby Tk](第 2 部分 Ruby 与其环境/第 19 章 Ruby Tk/readme.md)
         * [第 20 章 Ruby 和微软 Windows 系统](第 2 部分 Ruby 与其环境/第 20 章 Ruby 和微软 Windows 系统/readme.md)
         * [第 21 章 扩展 Ruby](第 2 部分 Ruby 与其环境/第 21 章 扩展 Ruby/readme.md)
+    * [第 3 部分 Ruby 的核心](第 3 部分 Ruby 的核心/readme.md)
+        * [第 22 章 Ruby 语言](第 3 部分 Ruby 的核心/第 22 章 Ruby 语言/readme.md)
