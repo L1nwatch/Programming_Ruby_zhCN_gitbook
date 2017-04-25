@@ -27,3 +27,7 @@
         * [第 21 章 扩展 Ruby](第 2 部分 Ruby 与其环境/第 21 章 扩展 Ruby/readme.md)
     * [第 3 部分 Ruby 的核心](第 3 部分 Ruby 的核心/readme.md)
         * [第 22 章 Ruby 语言](第 3 部分 Ruby 的核心/第 22 章 Ruby 语言/readme.md)
+        * [第 23 章 Duck Typing](第 3 部分 Ruby 的核心/第 23 章 Duck Typing/readme.md)
+        * [第 24 章 类与对象](第 3 部分 Ruby 的核心/第 24 章 类与对象/readme.md)
+        * [第 25 章 Ruby 安全](第 3 部分 Ruby 的核心/第 25 章 Ruby 安全/readme.md)
+        * [第 26 章 反射，ObjectSpace 和分布式 Ruby](第 3 部分 Ruby 的核心/第 26 章 反射，ObjectSpace 和分布式 Ruby/readme.md)
