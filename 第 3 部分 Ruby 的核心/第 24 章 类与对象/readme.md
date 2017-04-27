@@ -100,3 +100,117 @@ a.tickle	# ->	"hee, hee!"
 
 ### 24.2 类和模块的定义
 
+在如 C++ 或 Java 的语言中，类定义是在编译器处理的：编译器创建符号表，计算出需要分配多少存储空间，构造分发表（dispatch table）等。
+
+Ruby 则不同。在 Ruby 中，类和模块的定义是可执行的代码。虽然是在编译期进行解析，但当遇到定义时，类和模块是在运行时创建的。（这对方法定义也是成立的。）这可以让你可以比传统语言更动态地架构你的程序。你可以在类要被定义时，而非每次使用类对象时，做出决定。
+
+```ruby
+module Tracing
+  # ...
+end
+class MediaPlayer
+  include Tracing if $DEBUG
+  if ::EXPORT_VERSION
+    def decrypt(stream)
+      raise "Decryption not available"
+    end
+  else
+    def decrypt(stream)
+      # ...
+    end
+  end
+end
+```
+
+类定义在执行时就是以这个类作为当前对象。
+
+#### 24.2.1 类实例变量
+
+对一般的实例变量来说，属性访问方法是在类一级定义的。对类实例变量来说，必须在 metaclass 中定义访问函数。
+
+```ruby
+class Test
+  @cls_var = 123
+  class << self
+    attr_reader :cls_var
+  end
+end
+Test.cls_var	# ->	123
+```
+
+许多我们在定义类或模块时使用的指令，例如 `alias_method`、`attr` 和 `public`，都是 Module 类中的方法——你可以通过编写 Ruby 代码来扩展类或模块定义的功能。
+
+`once` 使用了这个特性，表明某个特定的方法体只应该被调用一次。
+
+```ruby
+class ExampleDate
+  # ...
+  once :as_string, :as_YMD
+end
+```
+
+#### 24.2.2 类名是常量
+
+所有的内建类，以及你所定义的类，都有一个对应的全局常量，它的名字和你的类名相同。
+
+在系统中有两个名为 String 的东西。一个是指向 String 类的常量（Class 类的一个对象），另一个是（类）对象本身。
+
+类名为常量的事实，意味着你可以把类和其他 Ruby 对象一样来对待：你可以拷贝它们，将它们作为参数传入方法，或者在表达式中使用它们。
+
+```ruby
+def factory(klass, *args)
+  klass.new(*args)
+end
+factory(String, "Hello")	# ->	"Hello"
+factory(Dir, ".")
+```
+
+如果一个无名的类被赋值给一个常量，Ruby 将常量作为类名。
+
+### 24.3 顶层的执行环境
+
+在顶层，我们在某个预定义的对象上下文中执行代码。当我们定义方法时，我们实际创建了 Object 类的一个（私有的）实例方法。
+
+```ruby
+puts "Hello, World"
+self.class	# ->	Object
+```
+
+顶层的实例变量也属于这个顶层对象。
+
+### 24.4 继承与可见性
+
+在一个类定义中，你可以修改祖先类中方法的可见性。
+
+```ruby
+class Base
+  def aMethod
+    # xxx
+  end
+  private :aMethod
+end
+class Derived1 < Base
+  public :aMethod
+end
+class Derived2 < Base
+end
+```
+
+我们可以调用 Derived1 类实例中的 aMethod，但是不能通过 Base 或 Derived2 的实例来调用它。
+
+如果一个子类改变了父类中某个方法的可见性，Ruby 实际上在子类中插入了一个隐藏的代理方法，使用 super 调用原有的方法。然后，它将这个代理的可见性设置为你所需要的。
+
+```ruby
+class Derived1 < Base
+  def aMethod(*args)
+    super
+  end
+  public :aMethod
+```
+
+### 24.5 冻结对象
+
+任何对象都可以通过调用 `Object#freeze` 被冻结。一个被冻结的对象是不能修改的：你不能改变它的实例变量（无论直接或间接），你不能为其关联单例方法，而且，如果它是类或模块，你不能添加、删除或更改它的方法。一旦被冻结，对象将始终保持冻结状态：没有 `Object#thaw` 方法可用。你可以使用 `Object#frozen?` 来判断对象是否被冻结。
+
+当你拷贝一个被冻结的对象时，如果你调用对象的 clone 方法，整个对象的状态（包括它是否被冻结）都会被拷贝到新对象中。另一方面，dup 通常只拷贝对象的内容——新拷贝不会继承冻结的状态。
+
